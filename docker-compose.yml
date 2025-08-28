@@ -1,36 +1,62 @@
-version: '3.8'
+version: "3.9"
+
 services:
-  app:
+  dotnet-api:
+    image: op3000/dotnet-api:latest
+    container_name: dotnet-api
+    ports:
+      - "5208:5208"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      AzureBlobStorage__ConnectionString: "DefaultEndpointsProtocol=https;AccountName=edatajanus;AccountKey=3qQH5RjeiDSeHB91qVWFq6CbWysxWGEsxQ57Q1xGWBQJ8nnjyngDwFp5WohlmrO2WQuhGmwR3JqO+AStHf3qsQ==;EndpointSuffix=core.windows.net"
+      AzureBlobStorage__ContainerName: "docs-container"
+      VectorizeEndpoint: "http://vectorizer:8000"
+    depends_on:
+      - vectorizer
+
+  vectorizer:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: vectorizer
     ports:
       - "8000:8000"
     volumes:
-      - ./docs:/app/docs
       - ./src:/app/src
     depends_on:
       - ollama
       - qdrant
     environment:
-      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=edatajanus;AccountKey=W5y7X1c84AHm8BSBwM0DJPy6KWIHm6HI;EndpointSuffix=core.windows.net
-      - AZURE_CONTAINER_NAME=docs-container
-      - QDRANT_URL=http://qdrant:6333
-      - OLLAMA_URL=http://ollama:11434
+      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=https;AccountName=edatajanus;AccountKey=3qQH5RjeiDSeHB91qVWFq6CbWysxWGEsxQ57Q1xGWBQJ8nnjyngDwFp5WohlmrO2WQuhGmwR3JqO+AStHf3qsQ==;EndpointSuffix=core.windows.net"
+      AZURE_CONTAINER_NAME: "docs-container"
+      QDRANT_URL: "http://qdrant:6333"
+      OLLAMA_URL: "http://ollama:11434"
+      LLM_NAME: "llama3:8b"
 
   ollama:
     image: ollama/ollama:latest
+    container_name: ollama
     ports:
       - "11434:11434"
     volumes:
       - ollama:/root/.ollama
     environment:
-      - OLLAMA_HOST=0.0.0.0
-      - NVIDIA_VISIBLE_DEVICES=all  # Habilita GPU, se disponível
+      OLLAMA_HOST: "0.0.0.0"
+      NVIDIA_VISIBLE_DEVICES: "all"
     entrypoint: ["/bin/sh", "-c", "ollama serve & sleep 5 && ollama pull llama3:8b && wait"]
+  
+  web:
+    image: op3000/front-vectorize:latest
+    ports:
+      - "8080:80"
+    env_file:
+      - .env
+    environment:
+      - VITE_API_BASE_URL=http://dotnet-api:5208
 
   qdrant:
     image: qdrant/qdrant:latest
+    container_name: qdrant
     ports:
       - "6333:6333"
     volumes:

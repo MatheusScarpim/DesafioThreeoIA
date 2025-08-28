@@ -6,5 +6,5 @@ router = APIRouter()
 
 @router.post("/query")
 async def query_endpoint(request: QueryRequest):
-    result = await query_rag(request.question)  # Use await aqui!
+    result = await query_rag(request.question)
     return result

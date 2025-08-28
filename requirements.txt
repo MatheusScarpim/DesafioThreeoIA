@@ -9,3 +9,4 @@ sentence-transformers
 azure-storage-blob
 qdrant-client
 pypdf
+python-dotenv
